@@ -11,7 +11,7 @@ pub enum RequestType {
 
 pub struct HttpRequest<'b: 'h, 'h> {
     pub message: &'b [u8],
-    // pub request_type: RequestType,
+    pub request_type: RequestType,
     // pub resource: Box<Path>,
     pub headers: &'h [Header<'b>],
     // pub body: & 'b str
@@ -23,6 +23,20 @@ impl<'b, 'h> HttpRequest<'b, 'h> {
         header_arr: &'h mut [Header<'b>],
     ) -> Result<HttpRequest<'b, 'h>, &'static str> {
         let message = buf;
+
+        let request_type_end: usize = String::from_utf8(message.to_vec())
+            .expect("dead")
+            .find(' ')
+            .unwrap();
+        let request_type: RequestType;
+
+        request_type = match String::from_utf8(message[..request_type_end].to_vec()).unwrap().as_str(){
+            "GET" =>  RequestType::GET,
+            "POST" => RequestType::POST,
+            "PUT" => RequestType::PUT,
+            "DELETE" => RequestType::DELETE,
+            _ => panic!("Unsupported request type")
+        };
 
         let header_start: usize = String::from_utf8(message.to_vec())
             .expect("dead")
@@ -41,6 +55,6 @@ impl<'b, 'h> HttpRequest<'b, 'h> {
             httparse::Status::Partial => return Err("Partial parsing performed"),
         };
 
-        return Ok(HttpRequest { message, headers });
+        return Ok(HttpRequest { message, request_type, headers });
     }
 }

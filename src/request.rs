@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-
 use httparse::{parse_headers, Header, Status};
 
 #[derive(Debug)]
@@ -15,7 +14,7 @@ pub struct HttpRequest<'b: 'h, 'h> {
     pub request_type: RequestType,
     pub resource: Box<Path>,
     pub headers: &'h [Header<'b>],
-    // pub body: & 'b str
+    pub body: & 'b str
 }
 
 impl<'b, 'h> HttpRequest<'b, 'h> {
@@ -64,7 +63,33 @@ impl<'b, 'h> HttpRequest<'b, 'h> {
             }
             httparse::Status::Partial => return Err("Partial parsing performed"),
         };
+        
+        todo!();
+    }
 
-        return Ok(HttpRequest { message, request_type, resource, headers });
+    pub fn find_body_pos(message: &[u8]) -> Option<usize>{
+        for (i, ch) in message.iter().rev().enumerate(){
+            if *ch == ('\n' as u8){
+                if message[message.len() - 1 - i - 1] == ('\r' as u8) {
+                    return Some(message.len() - 1 - i + 1)
+                } 
+            }
+        };
+        None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::HttpRequest;
+
+
+    #[test]
+    fn test_find_body_pos(){
+        let test_str = "POST /path/to/resource HTTP/1.1\r\nHost: example.com\r\nContent-Length: 26\r\nContent-Type: application/json\r\n\r\n{\"key\":\"value\"}";
+        let message: &[u8]= test_str.as_bytes();
+
+        let body_start = HttpRequest::find_body_pos(message).unwrap();
+        assert_eq!(String::from_utf8(message[body_start..].to_vec()).unwrap(), "{\"key\":\"value\"}")
     }
 }

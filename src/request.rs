@@ -63,15 +63,17 @@ impl<'b, 'h> HttpRequest<'b, 'h> {
             }
             httparse::Status::Partial => return Err("Partial parsing performed"),
         };
+
+        let body: &str = std::str::from_utf8(&message[HttpRequest::find_body_pos(message).unwrap()..]).unwrap();
         
-        todo!();
+        return Ok(HttpRequest{message, resource, request_type, headers, body})
     }
 
     pub fn find_body_pos(message: &[u8]) -> Option<usize>{
         for (i, ch) in message.iter().rev().enumerate(){
             if *ch == ('\n' as u8){
-                if message[message.len() - 1 - i - 1] == ('\r' as u8) {
-                    return Some(message.len() - 1 - i + 1)
+                if message[message.len() - i - 2] == ('\r' as u8) {
+                    return Some(message.len() - i)
                 } 
             }
         };

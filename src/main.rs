@@ -20,7 +20,8 @@ fn handle_connection(mut stream: TcpStream) {
     
     println!("Type: {:?}", request.request_type);
     println!("Header: {:?}", request.headers);
-    println!("Resource: {:?}", request.resource)
+    println!("Resource: {:?}", request.resource);
+    println!("Body: {}", request.body)
 }
 
 fn main() -> std::io::Result<()> {

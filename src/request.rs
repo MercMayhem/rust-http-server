@@ -24,12 +24,14 @@ impl<'b, 'h> HttpRequest<'b, 'h> {
     ) -> Result<HttpRequest<'b, 'h>, &'static str> {
         let message = buf;
 
+        // Find end index for request type
         let request_type_end: usize = String::from_utf8(message.to_vec())
             .expect("dead")
             .find(' ')
             .unwrap();
         let request_type: RequestType;
 
+        // Parse request_type
         request_type = match String::from_utf8(message[..request_type_end].to_vec()).unwrap().as_str(){
             "GET" =>  RequestType::GET,
             "POST" => RequestType::POST,
@@ -38,21 +40,25 @@ impl<'b, 'h> HttpRequest<'b, 'h> {
             _ => panic!("Unsupported request type")
         };
 
+        // Find start and end index of resource
         let resource_start = request_type_end + 1;
         let resource_end = String::from_utf8(message[resource_start..].to_vec())
             .expect("dead")
             .find(' ')
             .unwrap() + resource_start;
         
+        // Find resource requested
         let path_buf = PathBuf::from(&String::from_utf8(message[resource_start..resource_end].to_vec()).unwrap());
         let resource = path_buf.into_boxed_path();
 
+        // Find start of headers
         let header_start: usize = String::from_utf8(message.to_vec())
             .expect("dead")
             .find('\n')
             .unwrap()
             + 1;
 
+        // Parsing headers
         let parsed_status: Status<(usize, &[Header])> =
             parse_headers(&message[header_start..], header_arr).unwrap();
 
@@ -64,6 +70,7 @@ impl<'b, 'h> HttpRequest<'b, 'h> {
             httparse::Status::Partial => return Err("Partial parsing performed"),
         };
 
+        // Parsing body
         let body: &str = std::str::from_utf8(&message[HttpRequest::find_body_pos(message).unwrap()..]).unwrap();
         
         return Ok(HttpRequest{message, resource, request_type, headers, body})

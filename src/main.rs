@@ -1,9 +1,37 @@
 mod request;
+mod util;
+
+use std::env;
+use util::{get_html_files, get_index_file};
 use httparse::EMPTY_HEADER;
 use request::HttpRequest;
 use std::io::Read;
 use std::net::{TcpListener, TcpStream};
 use std::time::Duration;
+
+
+fn process_request(request: &HttpRequest){
+    match request.request_type {
+        request::RequestType::GET => {
+            let curr_dir = env::current_dir().unwrap().into_boxed_path();
+
+            let dir_resource = curr_dir.join(&request.resource);
+
+            if dir_resource.try_exists().unwrap() {
+                println!("Resource {:?} exists", dir_resource);
+                if dir_resource.is_dir(){
+                    let html_files = get_html_files(&dir_resource).unwrap();
+                    let index_files = get_index_file(html_files.clone());
+
+                    println!("html_files: {:?}", html_files);
+                    println!("index_files: {:?}", index_files);
+                }
+            }
+            else {println!("Resource {:?} doesn't exist", dir_resource)};
+        },
+        _ => println!("Implement this later")
+    }
+}
 
 fn handle_connection(mut stream: TcpStream) {
     match stream.peer_addr() {
@@ -17,11 +45,7 @@ fn handle_connection(mut stream: TcpStream) {
     let mut header_arr = [EMPTY_HEADER; 64];
 
     let request = HttpRequest::new(&buf, header_arr.as_mut_slice()).unwrap();
-    
-    println!("Type: {:?}", request.request_type);
-    println!("Header: {:?}", request.headers);
-    println!("Resource: {:?}", request.resource);
-    println!("Body: {}", request.body)
+    process_request(&request)
 }
 
 fn main() -> std::io::Result<()> {

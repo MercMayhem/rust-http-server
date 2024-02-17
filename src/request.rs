@@ -41,7 +41,7 @@ impl<'b, 'h> HttpRequest<'b, 'h> {
         };
 
         // Find start and end index of resource
-        let resource_start = request_type_end + 1;
+        let resource_start = request_type_end + 2;
         let resource_end = String::from_utf8(message[resource_start..].to_vec())
             .expect("dead")
             .find(' ')

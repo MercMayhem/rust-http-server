@@ -2,17 +2,19 @@
 
 mod html;
 mod request;
+mod response;
 mod util;
 
 use httparse::EMPTY_HEADER;
 use request::HttpRequest;
-use std::io::Read;
+use response::HttpResponse;
+use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::time::Duration;
 use std::{env, fs};
 use util::{get_files_and_dirs, get_html_files, get_index_file};
 
-fn process_request(request: &HttpRequest) {
+fn process_request(request: &HttpRequest) -> Option<String> {
     match request.request_type {
         request::RequestType::GET => {
             let curr_dir = env::current_dir().unwrap().into_boxed_path();
@@ -32,7 +34,10 @@ fn process_request(request: &HttpRequest) {
                         body = String::from_utf8(index).unwrap();
                     }
 
-                    println!("{}", body);
+                    let response = HttpResponse::from_html_body(&body);
+                    println!("{}", response.to_string());
+
+                    return Some(response.to_string());
                 }
             } else {
                 println!("Resource {:?} doesn't exist", dir_resource)
@@ -40,6 +45,8 @@ fn process_request(request: &HttpRequest) {
         }
         _ => println!("Implement this later"),
     }
+
+    None
 }
 
 fn handle_connection(mut stream: TcpStream) {
@@ -54,7 +61,9 @@ fn handle_connection(mut stream: TcpStream) {
     let mut header_arr = [EMPTY_HEADER; 64];
 
     let request = HttpRequest::new(&buf, header_arr.as_mut_slice()).unwrap();
-    process_request(&request)
+    let response = process_request(&request).unwrap_or("".to_string());
+
+    let _ = stream.write_all(response.as_bytes());
 }
 
 fn main() -> std::io::Result<()> {

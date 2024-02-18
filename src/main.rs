@@ -38,6 +38,12 @@ fn process_request(request: &HttpRequest) -> Option<String> {
                     println!("{}", response.to_string());
 
                     return Some(response.to_string());
+                } else {
+                    let resource = String::from_utf8(fs::read(dir_resource).unwrap()).unwrap();
+                    let response = HttpResponse::from_file(&resource);
+                    println!("{}", response.to_string());
+
+                    return Some(response.to_string());
                 }
             } else {
                 println!("Resource {:?} doesn't exist", dir_resource)

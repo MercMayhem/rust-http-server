@@ -2,6 +2,15 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::fs;
 
+pub fn get_files_and_dirs(dir: &PathBuf) -> Result<Vec<PathBuf>, Box<dyn Error>>{
+    let entities = fs::read_dir(dir)?
+        .filter_map(|res| res.ok())
+        .map(|dir_entry| dir_entry.path())
+        .collect();
+
+    return Ok(entities)
+}
+
 pub fn get_html_files(dir: &PathBuf) -> Result<Vec<PathBuf>, Box<dyn Error>>{
     let paths = fs::read_dir(dir)?
         .filter_map(|res| res.ok())

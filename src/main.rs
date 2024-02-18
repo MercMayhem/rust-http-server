@@ -1,42 +1,44 @@
 #![recursion_limit = "512"]
 
-mod request;
 mod html;
+mod request;
 mod util;
 
-use std::env;
-use util::{get_html_files, get_index_file, get_files_and_dirs};
 use httparse::EMPTY_HEADER;
 use request::HttpRequest;
 use std::io::Read;
 use std::net::{TcpListener, TcpStream};
 use std::time::Duration;
+use std::{env, fs};
+use util::{get_files_and_dirs, get_html_files, get_index_file};
 
-
-fn process_request(request: &HttpRequest){
+fn process_request(request: &HttpRequest) {
     match request.request_type {
         request::RequestType::GET => {
             let curr_dir = env::current_dir().unwrap().into_boxed_path();
-
+            let body: String;
             let dir_resource = curr_dir.join(&request.resource);
 
             if dir_resource.try_exists().unwrap() {
                 println!("Resource {:?} exists", dir_resource);
-                if dir_resource.is_dir(){
+                if dir_resource.is_dir() {
                     let html_files = get_html_files(&dir_resource).unwrap();
-                    let index_files = get_index_file(html_files.clone());
-                    
-                    if index_files == None{
-                        let body = html::diplay_directory_listing(&dir_resource);
-                        println!("{}", body);
+                    let index_file = get_index_file(html_files.clone());
+
+                    if index_file == None {
+                        body = html::diplay_directory_listing(&dir_resource);
                     } else {
-                        todo!()
+                        let index = fs::read(index_file.unwrap()).unwrap();
+                        body = String::from_utf8(index).unwrap();
                     }
+
+                    println!("{}", body);
                 }
-            }
-            else {println!("Resource {:?} doesn't exist", dir_resource)};
-        },
-        _ => println!("Implement this later")
+            } else {
+                println!("Resource {:?} doesn't exist", dir_resource)
+            };
+        }
+        _ => println!("Implement this later"),
     }
 }
 

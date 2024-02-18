@@ -1,8 +1,11 @@
+#![recursion_limit = "512"]
+
 mod request;
+mod html;
 mod util;
 
 use std::env;
-use util::{get_html_files, get_index_file};
+use util::{get_html_files, get_index_file, get_files_and_dirs};
 use httparse::EMPTY_HEADER;
 use request::HttpRequest;
 use std::io::Read;
@@ -22,9 +25,13 @@ fn process_request(request: &HttpRequest){
                 if dir_resource.is_dir(){
                     let html_files = get_html_files(&dir_resource).unwrap();
                     let index_files = get_index_file(html_files.clone());
-
-                    println!("html_files: {:?}", html_files);
-                    println!("index_files: {:?}", index_files);
+                    
+                    if index_files == None{
+                        let body = html::diplay_directory_listing(&dir_resource);
+                        println!("{}", body);
+                    } else {
+                        todo!()
+                    }
                 }
             }
             else {println!("Resource {:?} doesn't exist", dir_resource)};

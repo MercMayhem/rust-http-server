@@ -3,6 +3,7 @@
 mod html;
 mod request;
 mod response;
+mod threadpool;
 mod util;
 
 use httparse::EMPTY_HEADER;
@@ -12,6 +13,7 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::time::Duration;
 use std::{env, fs};
+use threadpool::ThreadPool;
 use util::{get_files_and_dirs, get_html_files, get_index_file};
 
 fn process_request(request: &HttpRequest) -> Option<String> {
@@ -74,11 +76,12 @@ fn handle_connection(mut stream: TcpStream) {
 
 fn main() -> std::io::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:80")?;
+    let pool = ThreadPool::new(8);
 
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                handle_connection(stream);
+                pool.run(move || handle_connection(stream));
             }
             Err(e) => println!("Error: {:?}", e),
         }

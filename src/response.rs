@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::Local ;
+use chrono::Local;
 
 pub struct HttpResponse<'a> {
     status: u8,
@@ -39,18 +39,22 @@ impl<'a> HttpResponse<'a> {
 
         headers.insert(
             "Content-Length".to_string(),
-            format!("{}", file_bytes.len())
+            format!("{}", file_bytes.len()),
         );
 
         headers.insert(
             "Content-Type".to_string(),
-            "application/octet-stream".to_string()
+            "application/octet-stream".to_string(),
         );
 
         headers.insert("Date".to_string(), Local::now().to_rfc2822().to_string());
         headers.insert("Server".to_string(), "Amans-Rust-Server/0.1".to_string());
 
-        return HttpResponse{status, headers, body: file_bytes};
+        return HttpResponse {
+            status,
+            headers,
+            body: file_bytes,
+        };
     }
 
     fn push_headers(&self, ret: &mut String) {

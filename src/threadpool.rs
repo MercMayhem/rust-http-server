@@ -2,28 +2,28 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
+type Job = Box<dyn FnOnce() + Send + 'static>;
+
 pub struct ThreadPool {
-    num: u8,
-    threads: Vec<JoinHandle<()>>,
-    sender: Sender<Box<dyn FnOnce() + Send + 'static>>,
+    threads: Vec<Option<JoinHandle<()>>>,
+    sender: Option<Sender<Job>>,
 }
 
 impl ThreadPool {
     pub fn new(num: u8) -> ThreadPool {
-        let mut threads: Vec<JoinHandle<()>> = vec![];
+        let mut threads: Vec<Option<JoinHandle<()>>> = vec![];
 
-        let (sender, receiver) = channel::<Box<dyn FnOnce() + Send + 'static>>();
+        let (sender, receiver) = channel::<Job>();
         let receiver = Arc::new(Mutex::new(receiver));
 
         for _ in 0..num {
             let move_receiver = Arc::clone(&receiver);
-            threads.push(thread::spawn(move || Self::thread_closure(move_receiver)));
+            threads.push(Some(thread::spawn(move || Self::thread_closure(move_receiver))));
         }
 
         ThreadPool {
-            num,
             threads,
-            sender,
+            sender: Some(sender),
         }
     }
 
@@ -31,10 +31,10 @@ impl ThreadPool {
     where
         F: FnOnce() + Send + 'static,
     {
-        let _ = self.sender.send(Box::new(job));
+        let _ = self.sender.as_ref().map(|sender| sender.send(Box::new(job)).ok());
     }
 
-    fn thread_closure(receiver: Arc<Mutex<Receiver<Box<dyn FnOnce() + Send + 'static>>>>) {
+    fn thread_closure(receiver: Arc<Mutex<Receiver<Job>>>) {
         loop {
             let locked_receiver = receiver.lock().unwrap();
             let job = locked_receiver.recv();
@@ -45,5 +45,16 @@ impl ThreadPool {
             }
         }
         ()
+    }
+}
+
+impl Drop for ThreadPool{
+    fn drop(&mut self) {
+        drop(self.sender.take());
+        
+        for h in &mut self.threads{
+            let handle = h.take().unwrap();
+            handle.join().unwrap();
+        }
     }
 }
